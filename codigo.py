@@ -1,0 +1,1906 @@
+"""
+MundoMotos - Servidor Web & Plataforma de Motocicletas
+======================================================
+Sitio web interactivo de motos con catálogo, precios, descripciones
+detalladas, fichas técnicas, sistema dinámico de reseñas y cotizaciones.
+
+Para ejecutar:
+    python codigo.py
+"""
+
+import http.server
+import json
+import os
+import sys
+import threading
+import urllib.parse
+import webbrowser
+from datetime import datetime
+
+# Asegurar codificación UTF-8 en Windows para evitar errores charmap
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+PORT = 8000
+DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "motos_data.json")
+QUOTES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cotizaciones.json")
+
+# Base de datos inicial de motocicletas
+INITIAL_MOTOS = [
+    {
+        "id": "yamaha-r1m",
+        "marca": "Yamaha",
+        "modelo": "YZF-R1M",
+        "categoria": "deportiva",
+        "categoria_nombre": "Superbike / Deportiva",
+        "precio": 26999,
+        "precio_formato": "$26,999 USD",
+        "cuota_mensual": 415,
+        "imagen": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "998 cc",
+        "potencia": "200 HP @ 13,500 rpm",
+        "torque": "113.3 Nm @ 11,500 rpm",
+        "peso": "202 kg",
+        "velocidad_max": "299 km/h",
+        "aceleracion": "0-100 km/h en 2.9s",
+        "tanque": "17 Litros",
+        "transmision": "6 velocidades con Quickshifter bidireccional",
+        "sonido_tipo": "crossplane4",
+        "descripcion": "La cúspide tecnológica de Yamaha nacida directamente en los circuitos de MotoGP. La YZF-R1M equipa suspensión de competición electrónica Öhlins (ERS), carenado exclusivo en fibra de carbono auténtica y una Unidad de Medición Inercial (IMU) de 6 ejes que procesa datos 125 veces por segundo para ofrecer un control de tracción y frenada milimétricos.",
+        "colores": ["#1e3a8a", "#0f172a", "#94a3b8"],
+        "colores_nombres": ["Azul Yamaha Racing", "Fibra de Carbono Mate", "Plata Tech"],
+        "destacados": [
+            "Suspensión electrónica Öhlins NPX con cartucho presurizado",
+            "Carenado completo en fibra de carbono de grado aeronáutico",
+            "Unidad de control de comunicaciones (CCU) con telemetría GPS",
+            "Frenos con pinzas monobloque radiales de 4 pistones y ABS en curva"
+        ],
+        "reseñas": [
+            {
+                "id": "r1-1",
+                "autor": "Carlos Mendoza",
+                "calificacion": 5,
+                "fecha": "2026-02-14",
+                "titulo": "Una auténtica bestia de circuito",
+                "comentario": "El tacto de la electrónica y la aceleración del motor Crossplane es incomparable. En pista se siente sólida como una roca y la suspensión Öhlins se adapta mágicamente a cada curva."
+            },
+            {
+                "id": "r1-2",
+                "autor": "Martín Silva",
+                "calificacion": 5,
+                "fecha": "2026-03-01",
+                "titulo": "Vale cada centavo",
+                "comentario": "El acabado en fibra de carbono es una obra de arte. El sonido del motor tetracilíndrico con cigüeñal crossplane es único y adictivo."
+            }
+        ]
+    },
+    {
+        "id": "ducati-panigale-v4s",
+        "marca": "Ducati",
+        "modelo": "Panigale V4 S",
+        "categoria": "deportiva",
+        "categoria_nombre": "Superbike / Deportiva",
+        "precio": 31500,
+        "precio_formato": "$31,500 USD",
+        "cuota_mensual": 485,
+        "imagen": "https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "1103 cc",
+        "potencia": "215.5 HP @ 13,000 rpm",
+        "torque": "123.6 Nm @ 9,500 rpm",
+        "peso": "195.5 kg",
+        "velocidad_max": "305 km/h",
+        "aceleracion": "0-100 km/h en 2.8s",
+        "tanque": "17 Litros",
+        "transmision": "6 velocidades con Ducati Quick Shift (DQS) EVO 2",
+        "sonido_tipo": "v4",
+        "descripcion": "El pináculo del diseño y la velocidad italiana. Diseñada codo a codo con el departamento Ducati Corse de WorldSBK, la Panigale V4 S monta el glorioso motor Desmosedici Stradale V4 a 90° con cigüeñal contrarrotante y alerones aerodinámicos biplano integrados que generan 30 kg de carga a 270 km/h.",
+        "colores": ["#b91c1c", "#18181b"],
+        "colores_nombres": ["Rojo Ducati Corsa", "Negro Eclipse Black"],
+        "destacados": [
+            "Motor Desmosedici Stradale V4 de 215.5 CV con distribución desmodrómica",
+            "Llantas forjadas de aluminio Marchesini superligeras",
+            "Alerones aerodinámicos derivados de MotoGP para máxima estabilidad",
+            "Pantalla TFT a color de 5\" con interfaz Track EVO inspirada en Pecco Bagnaia"
+        ],
+        "reseñas": [
+            {
+                "id": "r2-1",
+                "autor": "Alejandro Rossi",
+                "calificacion": 5,
+                "fecha": "2026-01-20",
+                "titulo": "Perfección italiana absoluta",
+                "comentario": "La potencia es demoledora pero los modos de tracción te permiten exprimirla con total confianza. El diseño te roba el aliento cada vez que abres el garaje."
+            },
+            {
+                "id": "r2-2",
+                "autor": "Daniel Herrera",
+                "calificacion": 4,
+                "fecha": "2026-02-18",
+                "titulo": "Increíble en pista, exige respeto en ciudad",
+                "comentario": "En carretera y pista es la reina indiscutida. En tráfico de ciudad genera algo de calor, pero al salir a carretera despejada se olvida todo al instante."
+            }
+        ]
+    },
+    {
+        "id": "bmw-r1250-gs-adventure",
+        "marca": "BMW Motorrad",
+        "modelo": "R 1250 GS Adventure",
+        "categoria": "aventura",
+        "categoria_nombre": "Aventura / Maxitrail",
+        "precio": 24890,
+        "precio_formato": "$24,890 USD",
+        "cuota_mensual": 380,
+        "imagen": "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "1254 cc",
+        "potencia": "136 HP @ 7,750 rpm",
+        "torque": "143 Nm @ 6,250 rpm",
+        "peso": "268 kg",
+        "velocidad_max": "220 km/h",
+        "aceleracion": "0-100 km/h en 3.6s",
+        "tanque": "30 Litros (Autonomía +550 km)",
+        "transmision": "Cardán con embrague bañado en aceite antirrebote",
+        "sonido_tipo": "boxer",
+        "descripcion": "La reina indiscutida de los viajes transcontinentales y el fin del mundo. Equipada con el legendario motor Boxer con distribución variable BMW ShiftCam, suspensiones electrónicas Dynamic ESA con nivelación automática y un colosal tanque de 30 litros que te permite devorar continentes sin detenerte.",
+        "colores": ["#1e293b", "#3b82f6", "#f8fafc"],
+        "colores_nombres": ["Triple Black Edición Especial", "Rallye Azul Deportivo", "Blanco Luminoso"],
+        "destacados": [
+            "Motor Boxer ShiftCam con par contundente desde muy bajas revoluciones",
+            "Chasis de puente espacial con suspensión Telelever delantera y Paralever trasera",
+            "Autonomía monumental superior a 550 kilómetros con tanque de 30 L",
+            "Modos de conducción Pro con control dinámico del freno motor (MSR)"
+        ],
+        "reseñas": [
+            {
+                "id": "r3-1",
+                "autor": "Fernando Galván",
+                "calificacion": 5,
+                "fecha": "2026-03-10",
+                "titulo": "Crucé los Andes sin un solo tropiezo",
+                "comentario": "Comodidad suprema en viajes de 10 horas diarias. La suspensión absorbe baches, rocas y carreteras rotas como si flotaras en una nube."
+            },
+            {
+                "id": "r3-2",
+                "autor": "Andrés Morales",
+                "calificacion": 5,
+                "fecha": "2026-03-22",
+                "titulo": "La mejor moto de aventura jamás construida",
+                "comentario": "El cardán te ahorra mantenimiento de cadena en viajes largos. Su centro de gravedad bajo hace que se sienta mucho más ágil de lo que sus 268 kg aparentan."
+            }
+        ]
+    },
+    {
+        "id": "kawasaki-z900-se",
+        "marca": "Kawasaki",
+        "modelo": "Z900 SE",
+        "categoria": "naked",
+        "categoria_nombre": "Naked / Streetfighter",
+        "precio": 11950,
+        "precio_formato": "$11,950 USD",
+        "cuota_mensual": 190,
+        "imagen": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "948 cc",
+        "potencia": "125 HP @ 9,500 rpm",
+        "torque": "98.6 Nm @ 7,700 rpm",
+        "peso": "213 kg",
+        "velocidad_max": "248 km/h",
+        "aceleracion": "0-100 km/h en 3.2s",
+        "tanque": "17 Litros",
+        "transmision": "6 marchas con embrague asistido y antirrebote",
+        "sonido_tipo": "inline4",
+        "descripcion": "Diseño salvaje inspirado en la filosofía 'Sugomi'. La versión Special Edition (SE) eleva la experiencia Naked con un amortiguador trasero Öhlins S46 de gama alta con ajuste remoto de precarga, frenos delanteros Brembo con pinzas radiales M4.32 y latiguillos metálicos trenzados.",
+        "colores": ["#15803d", "#0f172a"],
+        "colores_nombres": ["Verde Kawasaki Metallic", "Negro Spark Mate"],
+        "destacados": [
+            "Frenos Brembo M4.32 monobloque con discos lobulados de 300 mm",
+            "Amortiguador trasero Öhlins S46 con regulación hidráulica",
+            "Instrumentación digital TFT con conectividad Bluetooth Rideology App",
+            "Control de tracción KTRC con 3 modos y selección de potencia Full/Low"
+        ],
+        "reseñas": [
+            {
+                "id": "r4-1",
+                "autor": "Lucas Benítez",
+                "calificacion": 5,
+                "fecha": "2026-02-05",
+                "titulo": "Empuje brutal en rango medio",
+                "comentario": "La entrega de potencia es súper elástica. No tienes que bajar de marcha constantemente y el sonido de admisión al acelerar es glorioso."
+            },
+            {
+                "id": "r4-2",
+                "autor": "Javier Solís",
+                "calificacion": 4,
+                "fecha": "2026-03-15",
+                "titulo": "Calidad-precio imbatible",
+                "comentario": "Los componentes Öhlins y Brembo de la versión SE marcan una diferencia enorme comparada con la estándar. Muy ágil en curvas reviradas."
+            }
+        ]
+    },
+    {
+        "id": "harley-davidson-fat-boy-114",
+        "marca": "Harley-Davidson",
+        "modelo": "Fat Boy 114",
+        "categoria": "cruiser",
+        "categoria_nombre": "Cruiser / Custom",
+        "precio": 22499,
+        "precio_formato": "$22,499 USD",
+        "cuota_mensual": 345,
+        "imagen": "https://images.unsplash.com/photo-1558981420-87aa9dad1c89?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "1868 cc",
+        "potencia": "94 HP @ 4,750 rpm",
+        "torque": "161 Nm @ 3,000 rpm",
+        "peso": "317 kg",
+        "velocidad_max": "185 km/h",
+        "aceleracion": "0-100 km/h en 4.2s",
+        "tanque": "18.9 Litros",
+        "transmision": "Cruise Drive de 6 marchas con transmisión final por correa",
+        "sonido_tipo": "vtwin",
+        "descripcion": "El icono cinematográfico y la máxima expresión del muscle cruiser americano. La Fat Boy 114 impone respeto con sus colosales llantas lenticulares de aluminio fundido Lakester, un neumático trasero de 240 mm y el visceral motor Milwaukee-Eight 114 V-Twin repleto de par demoledor a bajo régimen.",
+        "colores": ["#000000", "#94a3b8", "#78350f"],
+        "colores_nombres": ["Vivid Black Cromo", "Gris Barracuda Plata", "Mineral Green Metálico"],
+        "destacados": [
+            "Colosal motor Milwaukee-Eight 114 V-Twin de 1,868 cc con sonido inconfundible",
+            "Llantas de disco sólido Lakester de aluminio fundido macizo",
+            "Chasis Softail moderno con monoamortiguador trasero oculto regulable",
+            "Acabados en cromo satinado brillante de resistencia extrema"
+        ],
+        "reseñas": [
+            {
+                "id": "r5-1",
+                "autor": "Roberto Navarro",
+                "calificacion": 5,
+                "fecha": "2026-01-30",
+                "titulo": "Pura presencia y personalidad en la carretera",
+                "comentario": "El torque es monstruoso. Apenas abres gas a 2000 rpm y sientes cómo te empuja hacia el horizonte. La gente se detiene a tomarle fotos en cada semáforo."
+            },
+            {
+                "id": "r5-2",
+                "autor": "Gonzalo Ramos",
+                "calificacion": 5,
+                "fecha": "2026-02-28",
+                "titulo": "Un sueño de toda la vida cumplido",
+                "comentario": "Muy cómoda para viajar a velocidad crucero. El sonido del motor es música pura y los acabados de pintura y cromo son impecables."
+            }
+        ]
+    },
+    {
+        "id": "ktm-890-adventure-r",
+        "marca": "KTM",
+        "modelo": "890 Adventure R",
+        "categoria": "aventura",
+        "categoria_nombre": "Aventura / Hard Enduro",
+        "precio": 15499,
+        "precio_formato": "$15,499 USD",
+        "cuota_mensual": 240,
+        "imagen": "https://images.unsplash.com/photo-1571327073757-71d13c24570f?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "889 cc",
+        "potencia": "105 HP @ 8,000 rpm",
+        "torque": "100 Nm @ 6,500 rpm",
+        "peso": "196 kg (en seco)",
+        "velocidad_max": "210 km/h",
+        "aceleracion": "0-100 km/h en 3.5s",
+        "tanque": "20 Litros (Depósito bajo envolvente)",
+        "transmision": "6 velocidades con embrague PASC antirrebote",
+        "sonido_tipo": "twin790",
+        "descripcion": "Inspirada en el legado ganador del Rally Dakar. Si tu aventura implica dunas del desierto, senderos de alta montaña y cruce de ríos, la 890 Adventure R cuenta con suspensiones WP XPLOR de 240 mm de recorrido completamente ajustables, un chasis multitubular de acero al cromo-molibdeno y depósito bajo centrado de masas.",
+        "colores": ["#ea580c", "#ffffff", "#0284c7"],
+        "colores_nombres": ["Naranja Dakar Oficial", "Blanco Alpino Rally", "Azul Factory"],
+        "destacados": [
+            "Suspensiones WP XPLOR de 48 mm con tecnología de cartucho abierto",
+            "Depósito de combustible en herradura que baja el centro de gravedad drásticamente",
+            "Modo de conducción Rally con ajuste de deslizamiento en 9 niveles en marcha",
+            "Neumáticos Mitas Enduro Trail de tacos de alta resistencia"
+        ],
+        "reseñas": [
+            {
+                "id": "r6-1",
+                "autor": "Emilio Valverde",
+                "calificacion": 5,
+                "fecha": "2026-03-05",
+                "titulo": "La verdadera reina del off-road",
+                "comentario": "Pasa por donde las maxi-trail pesadas no se atreven a entrar. El tanque bajo hace que parezca una moto de enduro de 450 cc al meterte en arena o barro."
+            }
+        ]
+    },
+    {
+        "id": "honda-cbr650r",
+        "marca": "Honda",
+        "modelo": "CBR650R E-Clutch",
+        "categoria": "deportiva",
+        "categoria_nombre": "Sport / Urbana Deportiva",
+        "precio": 9999,
+        "precio_formato": "$9,999 USD",
+        "cuota_mensual": 155,
+        "imagen": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "649 cc",
+        "potencia": "95 HP @ 12,000 rpm",
+        "torque": "63 Nm @ 9,500 rpm",
+        "peso": "208 kg",
+        "velocidad_max": "230 km/h",
+        "aceleracion": "0-100 km/h en 3.7s",
+        "tanque": "15.4 Litros",
+        "transmision": "6 velocidades con tecnología Honda E-Clutch",
+        "sonido_tipo": "inline4_smooth",
+        "descripcion": "La combinación ideal de deportividad, confiabilidad legendaria Honda y uso cotidiano. Equipa el revolucionario sistema Honda E-Clutch, que permite arrancar, detenerse y cambiar de marcha sin tener que accionar la maneta del embrague, conservando la pureza de un motor de 4 cilindros en línea que aúlla hasta las 12,000 rpm.",
+        "colores": ["#dc2626", "#1e293b"],
+        "colores_nombres": ["Grand Prix Red", "Matt Gunpowder Black"],
+        "destacados": [
+            "Innovador sistema Honda E-Clutch: cambios perfectos sin tocar la maneta",
+            "Horquilla invertida Showa SFF-BP de pistón grande de 41 mm",
+            "Control de par seleccionable Honda (HSTC) desconectable",
+            "Iluminación LED dual afilada inspirada en la CBR1000RR-R Fireblade"
+        ],
+        "reseñas": [
+            {
+                "id": "r7-1",
+                "autor": "Sofía Cárdenas",
+                "calificacion": 5,
+                "fecha": "2026-02-11",
+                "titulo": "El E-Clutch es magia para la ciudad y carretera",
+                "comentario": "El sistema de embrague electrónico es una maravilla en atascos de tráfico y en curvas rápidas sube marchas con una suavidad asombrosa. Mantenimiento muy accesible."
+            },
+            {
+                "id": "r7-2",
+                "autor": "Matías Orozco",
+                "calificacion": 5,
+                "fecha": "2026-03-12",
+                "titulo": "Finura de cuatro cilindros insuperable",
+                "comentario": "Cero vibraciones a velocidades de autopista. La posición de los semimanillares no es tan extrema como una R6, por lo que puedes viajar sin que te duela la espalda."
+            }
+        ]
+    },
+    {
+        "id": "vespa-gts-300-supersport",
+        "marca": "Vespa",
+        "modelo": "GTS 300 SuperSport",
+        "categoria": "urbana",
+        "categoria_nombre": "Scooter Premium / Urbana",
+        "precio": 8199,
+        "precio_formato": "$8,199 USD",
+        "cuota_mensual": 130,
+        "imagen": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=900&auto=format&fit=crop&q=80",
+        "cilindrada": "278 cc",
+        "potencia": "23.8 HP @ 8,250 rpm",
+        "torque": "26 Nm @ 5,250 rpm",
+        "peso": "160 kg",
+        "velocidad_max": "130 km/h",
+        "aceleracion": "0-100 km/h en 8.5s",
+        "tanque": "8.5 Litros",
+        "transmision": "Automática CVT con convertidor de par",
+        "sonido_tipo": "scooter_single",
+        "descripcion": "El glamour de la Dolce Vita con el motor más potente jamás montado en una Vespa. El propulsor 300 HPE (High Performance Engine) de inyección electrónica brinda arranques fulgurantes en ciudad. Carrocería monocasco 100% de acero, llave de proximidad Keyless y sistema de conectividad Vespa MIA con la app en tu teléfono.",
+        "colores": ["#f97316", "#0f172a", "#f8fafc"],
+        "colores_nombres": ["Naranja Sunset Arancio", "Negro Convinto Mate", "Blanco Innocenza"],
+        "destacados": [
+            "Motor 300 HPE monocilíndrico de 4 válvulas y refrigeración líquida",
+            "Carrocería autoportante clásica en chapa de acero estampada",
+            "Arranque sin llave (Keyless System) y localizador Bike Finder",
+            "Frenos con doble disco de 220 mm y sistema ABS + control de tracción ASR"
+        ],
+        "reseñas": [
+            {
+                "id": "r8-1",
+                "autor": "Valeria Fontana",
+                "calificacion": 5,
+                "fecha": "2026-03-18",
+                "titulo": "Estilo insuperable y agilidad urbana",
+                "comentario": "Es una gozada para desplazarse a diario. Se estaciona en cualquier lugar, consume poquísimo combustible y tiene un empuje sorprendente al salir de los semáforos."
+            }
+        ]
+    }
+]
+
+
+def load_motos():
+    """Carga las motos desde el archivo JSON si existe, o inicializa con los datos base."""
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error al leer datos locales, restaurando base: {e}")
+    save_motos(INITIAL_MOTOS)
+    return INITIAL_MOTOS
+
+
+def save_motos(data):
+    """Guarda las motos y sus reseñas en el archivo JSON."""
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error al guardar datos: {e}")
+
+
+def save_quote(quote):
+    """Registra una cotización o solicitud de prueba de manejo."""
+    quotes = []
+    if os.path.exists(QUOTES_FILE):
+        try:
+            with open(QUOTES_FILE, "r", encoding="utf-8") as f:
+                quotes = json.load(f)
+        except Exception:
+            quotes = []
+    quotes.append(quote)
+    try:
+        with open(QUOTES_FILE, "w", encoding="utf-8") as f:
+            json.dump(quotes, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error al guardar cotización: {e}")
+
+
+HTML_CONTENT = """<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MundoMotos™ | Concesionario Oficial & Experiencia Rider</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#ff5500',
+              red: '#e11d48',
+              dark: '#0a0d14',
+              card: '#121722',
+              border: '#1f293d',
+              accent: '#38bdf8'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Montserrat', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    body {
+      background-color: #080b11;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+    }
+    .neon-glow {
+      box-shadow: 0 0 25px rgba(255, 85, 0, 0.35);
+    }
+    .neon-text {
+      text-shadow: 0 0 15px rgba(255, 85, 0, 0.5);
+    }
+    .glass {
+      background: rgba(18, 23, 34, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .hero-bg {
+      background: radial-gradient(circle at 50% 20%, rgba(255, 85, 0, 0.15) 0%, transparent 60%),
+                  linear-gradient(180deg, #090d16 0%, #080b11 100%);
+    }
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 18px 35px -8px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 85, 0, 0.2);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar">
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="sticky top-0 z-40 glass border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-orange to-red-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-orange-600/30 group-hover:scale-105 transition">
+          <i class="fa-solid fa-motorcycle"></i>
+        </div>
+        <div>
+          <span class="font-display font-black text-2xl tracking-wider text-white">MUNDO<span class="text-brand-orange">MOTOS</span></span>
+          <span class="block text-[10px] tracking-widest uppercase text-gray-400 font-semibold">Premium Motorcycle Hub</span>
+        </div>
+      </a>
+
+      <!-- Navegación Escritorio -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+        <a href="#catalogo" class="text-gray-300 hover:text-brand-orange transition flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-xs text-brand-orange"></i> Modelos & Precios
+        </a>
+        <a href="#financiamiento" class="text-gray-300 hover:text-brand-orange transition flex items-center gap-2">
+          <i class="fa-solid fa-calculator text-xs text-brand-orange"></i> Simulador de Crédito
+        </a>
+        <a href="#contacto" class="text-gray-300 hover:text-brand-orange transition flex items-center gap-2">
+          <i class="fa-solid fa-helmet-safety text-xs text-brand-orange"></i> Test Drive
+        </a>
+      </nav>
+
+      <!-- Botones de Acción -->
+      <div class="flex items-center gap-3">
+        <button onclick="abrirModalCotizacionGeneral()" class="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-semibold text-xs uppercase tracking-wider px-5 py-2.5 rounded-full shadow-lg shadow-orange-600/30 transition transform hover:scale-105 active:scale-95">
+          <i class="fa-solid fa-bolt"></i> Cotizar Online
+        </button>
+
+        <!-- Indicador de Favoritos -->
+        <button onclick="abrirModalFavoritos()" class="relative p-2.5 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-red-500 hover:border-red-500/50 transition">
+          <i class="fa-solid fa-heart text-base"></i>
+          <span id="badgeFavoritos" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-red text-white text-[11px] font-bold flex items-center justify-center">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= HERO SECTION ================= -->
+  <section class="hero-bg py-16 md:py-24 relative overflow-hidden border-b border-gray-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-brand-orange text-xs font-bold uppercase tracking-widest">
+            <span class="w-2 h-2 rounded-full bg-brand-orange animate-ping"></span>
+            Gama Oficial 2026 Disponible
+          </div>
+          
+          <h1 class="font-display font-black text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-tight">
+            POTENCIA, VELOCIDAD & <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-orange via-orange-400 to-red-500">LIBERTAD TOTAL</span>
+          </h1>
+
+          <p class="text-gray-300 text-base sm:text-lg max-w-2xl leading-relaxed">
+            Explora las mejores motocicletas del planeta con fichas técnicas completas, precios transparentes, reseñas verificadas de pilotos reales y cotizador de crédito al instante.
+          </p>
+
+          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+            <a href="#catalogo" class="px-7 py-3.5 rounded-xl bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-orange-600/30 transition flex items-center gap-3">
+              <i class="fa-solid fa-motorcycle"></i> Ver Catálogo Completo
+            </a>
+            <a href="#financiamiento" class="px-7 py-3.5 rounded-xl bg-gray-900/90 hover:bg-gray-800 text-gray-200 border border-gray-700 font-semibold text-sm transition flex items-center gap-3">
+              <i class="fa-solid fa-calculator text-brand-orange"></i> Calcular Mensualidad
+            </a>
+          </div>
+
+          <!-- Métricas Destacadas -->
+          <div class="grid grid-cols-3 gap-4 pt-6 border-t border-gray-800/80 max-w-lg mx-auto lg:mx-0">
+            <div>
+              <div class="font-display font-black text-2xl sm:text-3xl text-white">+1,250</div>
+              <div class="text-xs text-gray-400 uppercase tracking-wider">Motos Entregadas</div>
+            </div>
+            <div>
+              <div class="font-display font-black text-2xl sm:text-3xl text-brand-orange">4.9 / 5</div>
+              <div class="text-xs text-gray-400 uppercase tracking-wider">Satisfacción Pilotos</div>
+            </div>
+            <div>
+              <div class="font-display font-black text-2xl sm:text-3xl text-white">3 Años</div>
+              <div class="text-xs text-gray-400 uppercase tracking-wider">Garantía Total</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Imagen Destacada del Hero -->
+        <div class="lg:col-span-5 relative">
+          <div class="relative rounded-2xl overflow-hidden border border-gray-800 shadow-2xl bg-gradient-to-b from-gray-900 to-black group">
+            <img src="https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=1000&auto=format&fit=crop&q=80" alt="Moto Destacada" class="w-full h-80 sm:h-96 object-cover transform group-hover:scale-105 transition duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+            
+            <div class="absolute bottom-5 left-5 right-5 p-4 rounded-xl glass border border-white/10 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold tracking-widest text-brand-orange uppercase">Destacada del Mes</span>
+                <h3 class="font-display font-extrabold text-white text-lg">Yamaha YZF-R1M</h3>
+                <p class="text-xs text-gray-300">200 HP • 998 cc • Suspensión Öhlins</p>
+              </div>
+              <div class="text-right">
+                <span class="block text-xs text-gray-400">Desde</span>
+                <span class="font-display font-black text-white text-lg">$26,999 USD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECCIÓN DE CATÁLOGO & FILTROS ================= -->
+  <main id="catalogo" class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 w-full">
+    
+    <!-- Encabezado de Catálogo -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div>
+        <div class="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
+          <i class="fa-solid fa-flag-checkered"></i> Catálogo Oficial
+        </div>
+        <h2 class="font-display font-black text-3xl sm:text-4xl text-white mt-1">Explora Nuestros Modelos</h2>
+        <p class="text-gray-400 text-sm mt-1">Precios oficiales, fichas técnicas completas y valoraciones de usuarios.</p>
+      </div>
+
+      <!-- Barra de búsqueda en vivo -->
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+        <input type="text" id="inputBuscar" placeholder="Buscar por marca, modelo o cc..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange text-sm transition">
+      </div>
+    </div>
+
+    <!-- Filtros de Categorías & Ordenamiento -->
+    <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-gray-900/60 border border-gray-800/80 mb-10">
+      <!-- Píldoras de Categorías -->
+      <div class="flex flex-wrap items-center gap-2" id="contenedorFiltros">
+        <button onclick="filtrarCategoria('todos')" data-cat="todos" class="btn-filtro active px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-brand-orange text-white shadow-md shadow-orange-600/30">
+          Todas (<span id="cont-todos">0</span>)
+        </button>
+        <button onclick="filtrarCategoria('deportiva')" data-cat="deportiva" class="btn-filtro px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-gray-800/80 text-gray-300 hover:bg-gray-700">
+          <i class="fa-solid fa-gauge-high mr-1 text-xs"></i> Deportivas (<span id="cont-deportiva">0</span>)
+        </button>
+        <button onclick="filtrarCategoria('naked')" data-cat="naked" class="btn-filtro px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-gray-800/80 text-gray-300 hover:bg-gray-700">
+          <i class="fa-solid fa-bolt mr-1 text-xs"></i> Naked (<span id="cont-naked">0</span>)
+        </button>
+        <button onclick="filtrarCategoria('aventura')" data-cat="aventura" class="btn-filtro px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-gray-800/80 text-gray-300 hover:bg-gray-700">
+          <i class="fa-solid fa-mountain mr-1 text-xs"></i> Aventura / Trail (<span id="cont-aventura">0</span>)
+        </button>
+        <button onclick="filtrarCategoria('cruiser')" data-cat="cruiser" class="btn-filtro px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-gray-800/80 text-gray-300 hover:bg-gray-700">
+          <i class="fa-solid fa-road mr-1 text-xs"></i> Cruiser (<span id="cont-cruiser">0</span>)
+        </button>
+        <button onclick="filtrarCategoria('urbana')" data-cat="urbana" class="btn-filtro px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition bg-gray-800/80 text-gray-300 hover:bg-gray-700">
+          <i class="fa-solid fa-city mr-1 text-xs"></i> Urbana (<span id="cont-urbana">0</span>)
+        </button>
+      </div>
+
+      <!-- Selector de Orden -->
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-gray-400 font-medium">Ordenar:</span>
+        <select id="selectOrden" onchange="renderizarMotos()" class="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand-orange text-xs">
+          <option value="popular">Más Populares</option>
+          <option value="precio-asc">Precio: Menor a Mayor</option>
+          <option value="precio-desc">Precio: Mayor a Menor</option>
+          <option value="potencia-desc">Mayor Potencia (HP)</option>
+          <option value="rating-desc">Mejor Calificadas</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Grid de Tarjetas de Motos -->
+    <div id="gridMotos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <!-- Inyectado por JavaScript -->
+    </div>
+
+    <!-- Mensaje si no hay resultados -->
+    <div id="sinResultados" class="hidden text-center py-16">
+      <i class="fa-solid fa-triangle-exclamation text-4xl text-gray-600 mb-3"></i>
+      <h3 class="text-lg font-bold text-white">No encontramos motocicletas con esos criterios</h3>
+      <p class="text-gray-400 text-sm mt-1">Intenta con otra palabra clave o restablece los filtros.</p>
+      <button onclick="limpiarFiltros()" class="mt-4 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold">
+        Restablecer Búsqueda
+      </button>
+    </div>
+  </main>
+
+  <!-- ================= CALCULADORA DE FINANCIAMIENTO ================= -->
+  <section id="financiamiento" class="py-16 bg-gray-950/80 border-t border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        
+        <div class="lg:col-span-5 space-y-4">
+          <div class="text-xs font-bold uppercase tracking-widest text-brand-orange">Simulador Financiero 2026</div>
+          <h2 class="font-display font-black text-3xl sm:text-4xl text-white">Haz Tu Sueño Realidad en Cuotas Cómodas</h2>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Planes de financiamiento con tasa preferencial desde el 9.5% anual. Ajusta el enganche y el plazo a tu medida sin letras ocultas ni penalizaciones por pago anticipado.
+          </p>
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center gap-3 text-sm text-gray-300">
+              <i class="fa-solid fa-circle-check text-green-500"></i> Aprobación inmediata en menos de 24 horas
+            </div>
+            <div class="flex items-center gap-3 text-sm text-gray-300">
+              <i class="fa-solid fa-circle-check text-green-500"></i> Seguro de cobertura amplia financiado
+            </div>
+            <div class="flex items-center gap-3 text-sm text-gray-300">
+              <i class="fa-solid fa-circle-check text-green-500"></i> Recibimos tu moto actual como parte de pago
+            </div>
+          </div>
+        </div>
+
+        <!-- Calculadora Interactiva -->
+        <div class="lg:col-span-7 bg-brand-card p-6 sm:p-8 rounded-2xl border border-gray-800 shadow-xl">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+            
+            <!-- Seleccionar Moto -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Selecciona la Moto</label>
+              <select id="calcMotoSelect" onchange="calcularFinanciamiento()" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange">
+                <!-- Opciones añadidas por JS -->
+              </select>
+            </div>
+
+            <!-- Plazo en meses -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Plazo de Financiamiento</label>
+              <div class="grid grid-cols-4 gap-2">
+                <button type="button" onclick="setPlazo(12)" class="btn-plazo px-2 py-2 rounded-lg bg-gray-800 text-xs font-bold text-gray-300 hover:bg-gray-700" data-meses="12">12m</button>
+                <button type="button" onclick="setPlazo(24)" class="btn-plazo px-2 py-2 rounded-lg bg-gray-800 text-xs font-bold text-gray-300 hover:bg-gray-700" data-meses="24">24m</button>
+                <button type="button" onclick="setPlazo(36)" class="btn-plazo px-2 py-2 rounded-lg bg-gray-800 text-xs font-bold text-gray-300 hover:bg-gray-700" data-meses="36">36m</button>
+                <button type="button" onclick="setPlazo(48)" class="btn-plazo px-2 py-2 rounded-lg bg-brand-orange text-xs font-bold text-white shadow" data-meses="48">48m</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Slider de Enganche -->
+          <div class="mb-6">
+            <div class="flex justify-between items-center text-xs font-bold mb-2">
+              <span class="uppercase tracking-wider text-gray-400">Enganche Inicial (<span id="calcPorcentajeEnganche">20</span>%)</span>
+              <span id="calcEngancheValor" class="text-brand-orange font-mono text-sm">$0 USD</span>
+            </div>
+            <input type="range" id="calcSliderEnganche" min="10" max="60" step="5" value="20" oninput="calcularFinanciamiento()" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-orange">
+            <div class="flex justify-between text-[11px] text-gray-500 mt-1 font-mono">
+              <span>Mínimo: 10%</span>
+              <span>Recomendado: 20%</span>
+              <span>Máximo: 60%</span>
+            </div>
+          </div>
+
+          <!-- Resultado Estimado -->
+          <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <span class="block text-xs uppercase tracking-wider text-gray-400">Cuota Mensual Estimada</span>
+              <div class="text-3xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-orange to-red-500" id="calcCuotaMensual">
+                $0 USD / mes
+              </div>
+              <span class="text-[11px] text-gray-400">Tasa de interés estimada: 9.9% anual sujeto a historial crediticio</span>
+            </div>
+            <button onclick="solicitarCreditoConMoto()" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-orange-600/30 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-invoice-dollar"></i> Pre-Aprobar Crédito
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECCIÓN DE CONTACTO & TEST DRIVE ================= -->
+  <section id="contacto" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+    <div class="bg-gradient-to-br from-gray-900 via-gray-900 to-black p-8 sm:p-12 rounded-3xl border border-gray-800 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-brand-orange/10 blur-3xl pointer-events-none"></div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-widest text-brand-orange">Siente La Adrenalina</span>
+          <h2 class="font-display font-black text-3xl sm:text-4xl text-white mt-1">Agenda Tu Prueba de Manejo Gratuita</h2>
+          <p class="text-gray-400 text-sm mt-3 leading-relaxed">
+            Nada se compara a sentir la aceleración, el sonido del escape y la postura de conducción en persona. Déjanos tus datos y un asesor te reservará la moto de tu elección en nuestro circuito o sala de exhibición.
+          </p>
+
+          <div class="mt-8 space-y-4">
+            <div class="flex items-center gap-4 text-sm text-gray-300">
+              <div class="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-brand-orange">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+              <div>
+                <span class="block font-bold text-white">Showroom Principal</span>
+                <span class="text-xs text-gray-400">Av. de los Motores 1000, Distrito Racing</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4 text-sm text-gray-300">
+              <div class="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-brand-orange">
+                <i class="fa-solid fa-phone"></i>
+              </div>
+              <div>
+                <span class="block font-bold text-white">Atención & WhatsApp</span>
+                <span class="text-xs text-gray-400">+1 (800) 900-MOTOS (Lunes a Sábado 9:00 - 19:00)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario -->
+        <form id="formContacto" onsubmit="enviarCotizacion(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Nombre Completo *</label>
+              <input type="text" id="contactoNombre" required placeholder="Ej. Juan Pérez" class="w-full bg-gray-950 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Correo Electrónico *</label>
+              <input type="email" id="contactoEmail" required placeholder="juan@correo.com" class="w-full bg-gray-950 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Teléfono / WhatsApp *</label>
+              <input type="tel" id="contactoTelefono" required placeholder="+1 555-0199" class="w-full bg-gray-950 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Moto de Interés</label>
+              <select id="contactoMoto" class="w-full bg-gray-950 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange">
+                <!-- Llenado dinámicamente -->
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Tipo de Solicitud</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-gray-950 border border-gray-800 cursor-pointer hover:border-gray-600 transition text-xs">
+                <input type="radio" name="tipoSolicitud" value="test-drive" checked class="accent-brand-orange">
+                <span>Prueba de Manejo (Test Drive)</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-gray-950 border border-gray-800 cursor-pointer hover:border-gray-600 transition text-xs">
+                <input type="radio" name="tipoSolicitud" value="cotizacion" class="accent-brand-orange">
+                <span>Cotización y Asesoría</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Comentarios Adicionales (Opcional)</label>
+            <textarea id="contactoMensaje" rows="3" placeholder="¿Tienes alguna preferencia de horario o dudas específicas?" class="w-full bg-gray-950 border border-gray-700 text-white rounded-xl px-4 py-2 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"></textarea>
+          </div>
+
+          <button type="submit" id="btnEnviarContacto" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-orange-600/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Confirmar Solicitud
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MODAL DETALLE DE MOTO ================= -->
+  <div id="modalDetalle" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+      
+      <!-- Botón Cerrar -->
+      <button onclick="cerrarModalDetalle()" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition border border-white/10">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <!-- Contenido scrolleable -->
+      <div class="overflow-y-auto p-6 sm:p-8 space-y-8 custom-scrollbar">
+        
+        <!-- Cabecera del Modal -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          
+          <!-- Imagen de la Moto -->
+          <div class="md:col-span-6 relative rounded-2xl overflow-hidden border border-gray-800 bg-black">
+            <img id="modalImg" src="" alt="" class="w-full h-64 sm:h-80 object-cover">
+            <div class="absolute bottom-3 left-3 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 text-xs font-semibold text-brand-orange" id="modalCategoriaBadge">
+              Deportiva
+            </div>
+          </div>
+
+          <!-- Información Principal -->
+          <div class="md:col-span-6 space-y-4">
+            <div>
+              <span id="modalMarca" class="text-xs uppercase tracking-widest font-bold text-brand-orange">Marca</span>
+              <h2 id="modalModelo" class="font-display font-black text-2xl sm:text-3xl text-white">Modelo</h2>
+            </div>
+
+            <!-- Valoración y Estrellas -->
+            <div class="flex items-center gap-2" id="modalRatingEstrellas">
+              <!-- Estrellas generadas -->
+            </div>
+
+            <!-- Precio -->
+            <div class="p-4 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-gray-400 block">Precio Contado</span>
+                <span id="modalPrecio" class="font-display font-black text-2xl text-white">$0 USD</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-gray-400 block">Desde</span>
+                <span id="modalCuota" class="font-semibold text-brand-orange text-sm">$0/mes</span>
+              </div>
+            </div>
+
+            <!-- Sonido de Motor Interactivo (Web Audio API) -->
+            <div class="p-4 rounded-xl bg-gradient-to-r from-orange-950/40 to-gray-900 border border-orange-500/30 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-volume-high text-brand-orange animate-pulse"></i> Rugido de Motor Virtual
+                </div>
+                <div class="text-[11px] text-gray-400">Escucha la aceleración acústica simulada</div>
+              </div>
+              <button id="btnRugido" onclick="reproducirSonidoMotor()" class="px-4 py-2 rounded-lg bg-brand-orange hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-play"></i> Acelerar
+              </button>
+            </div>
+
+            <!-- Selector de Colores -->
+            <div>
+              <span class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Colores Disponibles:</span>
+              <div id="modalColoresContenedor" class="flex items-center gap-3">
+                <!-- Píldoras de colores -->
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex gap-3 pt-2">
+              <button onclick="cotizarEstaMoto()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-orange-600/30 transition">
+                <i class="fa-solid fa-file-signature mr-1"></i> Solicitar Cotización
+              </button>
+              <button id="btnFavModal" onclick="toggleFavoritoModal()" class="px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white transition">
+                <i class="fa-regular fa-heart"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Descripción Completa -->
+        <div class="border-t border-gray-800 pt-6">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-brand-orange"></i> Descripción Detallada
+          </h3>
+          <p id="modalDescripcion" class="text-gray-300 text-sm leading-relaxed"></p>
+        </div>
+
+        <!-- Ficha Técnica Cuadrícula -->
+        <div class="border-t border-gray-800 pt-6">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-brand-orange"></i> Especificaciones Técnicas
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs" id="modalSpecsGrid">
+            <!-- Especificaciones inyectadas -->
+          </div>
+        </div>
+
+        <!-- Puntos Destacados -->
+        <div class="border-t border-gray-800 pt-6">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-white mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-star text-brand-orange"></i> Equipamiento & Tecnología Destacada
+          </h3>
+          <ul id="modalDestacadosLista" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
+            <!-- Lista -->
+          </ul>
+        </div>
+
+        <!-- ================= RESEÑAS DE LA MOTO ================= -->
+        <div class="border-t border-gray-800 pt-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <i class="fa-solid fa-comments text-brand-orange"></i> Reseñas & Experiencias de Pilotos
+              </h3>
+              <p class="text-xs text-gray-400">Opiniones verificadas de propietarios y probadores</p>
+            </div>
+            <button onclick="toggleFormularioResena()" class="px-3.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-plus text-brand-orange"></i> Dejar mi Reseña
+            </button>
+          </div>
+
+          <!-- Formulario para Añadir Reseña (Oculto por defecto) -->
+          <form id="formNuevaResena" onsubmit="guardarNuevaResena(event)" class="hidden bg-gray-950 p-5 rounded-2xl border border-orange-500/40 mb-6 space-y-4">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-brand-orange">Escribe Tu Opinión</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Tu Nombre o Alias *</label>
+                <input type="text" id="resenaAutor" required placeholder="Ej. Rodrigo M." class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Calificación *</label>
+                <div class="flex items-center gap-2 mt-1">
+                  <select id="resenaRating" class="bg-gray-900 border border-gray-700 text-brand-orange font-bold rounded-lg px-3 py-1.5 text-xs">
+                    <option value="5">★★★★★ (5/5) Excelente</option>
+                    <option value="4">★★★★☆ (4/5) Muy Buena</option>
+                    <option value="3">★★★☆☆ (3/5) Buena / Regular</option>
+                    <option value="2">★★☆☆☆ (2/5) Mejorable</option>
+                    <option value="1">★☆☆☆☆ (1/5) Mala</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Título de la Reseña *</label>
+              <input type="text" id="resenaTitulo" required placeholder="Ej. La mejor compra de mi vida" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Comentario Detallado *</label>
+              <textarea id="resenaComentario" required rows="3" placeholder="Cuéntanos sobre el rendimiento, aceleración, consumo, comodidad..." class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-xs"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" onclick="toggleFormularioResena()" class="px-4 py-2 rounded-lg bg-gray-800 text-xs text-gray-300">Cancelar</button>
+              <button type="submit" class="px-5 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold uppercase tracking-wider">Publicar Reseña</button>
+            </div>
+          </form>
+
+          <!-- Lista de Reseñas Existentes -->
+          <div id="modalListaResenas" class="space-y-3">
+            <!-- Inyectado por JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL FAVORITOS ================= -->
+  <div id="modalFavoritos" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+        <h3 class="font-display font-extrabold text-white text-lg flex items-center gap-2">
+          <i class="fa-solid fa-heart text-brand-red"></i> Mis Motos Guardadas
+        </h3>
+        <button onclick="cerrarModalFavoritos()" class="text-gray-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="listaFavoritosContenedor" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+        <!-- Inyectado por JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= NOTIFICACIÓN TOAST ================= -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-brand-card border border-brand-orange/40 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-orange-600/20 flex items-center gap-3 transition-all duration-300">
+    <div class="w-8 h-8 rounded-full bg-brand-orange/20 text-brand-orange flex items-center justify-center text-sm font-bold">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <div>
+      <div class="text-xs font-bold" id="toastTitulo">¡Éxito!</div>
+      <div class="text-[11px] text-gray-300" id="toastMensaje">Acción completada con éxito.</div>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-black border-t border-gray-800 py-12 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+        
+        <div class="space-y-3">
+          <div class="flex items-center justify-center sm:justify-start gap-2">
+            <div class="w-8 h-8 rounded-lg bg-brand-orange flex items-center justify-center text-white text-lg font-bold">
+              <i class="fa-solid fa-motorcycle"></i>
+            </div>
+            <span class="font-display font-black text-xl text-white">MUNDO<span class="text-brand-orange">MOTOS</span></span>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Tu concesionario de confianza. Pasión sobre dos ruedas, ingeniería de vanguardia y atención personalizada para todos los riders.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-3">Modelos</h4>
+          <ul class="text-xs space-y-2 text-gray-400">
+            <li><a href="#catalogo" onclick="filtrarCategoria('deportiva')" class="hover:text-brand-orange">Superbikes & Deportivas</a></li>
+            <li><a href="#catalogo" onclick="filtrarCategoria('naked')" class="hover:text-brand-orange">Naked & Hypernaked</a></li>
+            <li><a href="#catalogo" onclick="filtrarCategoria('aventura')" class="hover:text-brand-orange">Aventura & Maxitrail</a></li>
+            <li><a href="#catalogo" onclick="filtrarCategoria('cruiser')" class="hover:text-brand-orange">Cruiser & Custom V-Twin</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-3">Servicios</h4>
+          <ul class="text-xs space-y-2 text-gray-400">
+            <li><a href="#financiamiento" class="hover:text-brand-orange">Crédito & Financiamiento</a></li>
+            <li><a href="#contacto" class="hover:text-brand-orange">Test Drive en Circuito</a></li>
+            <li><a href="#contacto" class="hover:text-brand-orange">Taller & Servicio Certificado</a></li>
+            <li><a href="#contacto" class="hover:text-brand-orange">Garantía Extendida Oficial</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-3">Comunidad & Redes</h4>
+          <p class="text-xs text-gray-400 mb-3">Únete a nuestras rodadas mensuales y eventos exclusivos.</p>
+          <div class="flex justify-center sm:justify-start gap-3">
+            <a href="#" class="w-9 h-9 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-brand-orange flex items-center justify-center transition"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" class="w-9 h-9 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-brand-orange flex items-center justify-center transition"><i class="fa-brands fa-youtube"></i></a>
+            <a href="#" class="w-9 h-9 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-brand-orange flex items-center justify-center transition"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="#" class="w-9 h-9 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-brand-orange flex items-center justify-center transition"><i class="fa-brands fa-facebook-f"></i></a>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="border-t border-gray-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
+        <div>© 2026 MundoMotos Inc. Todos los derechos reservados. Desarrollado en Python.</div>
+        <div class="flex gap-4">
+          <a href="#" class="hover:underline">Aviso de Privacidad</a>
+          <a href="#" class="hover:underline">Términos y Condiciones</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= JAVASCRIPT APP ================= -->
+  <script>
+    // Estado de la Aplicación
+    let motosData = [];
+    let categoriaActiva = 'todos';
+    let favoritos = JSON.parse(localStorage.getItem('motos_favoritos') || '[]');
+    let motoSeleccionada = null;
+    let plazoFinanciamiento = 48;
+
+    // Cargar datos al iniciar
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarMotosDesdeServidor();
+      actualizarBadgeFavoritos();
+
+      // Búsqueda en vivo
+      document.getElementById('inputBuscar').addEventListener('input', () => {
+        renderizarMotos();
+      });
+    });
+
+    // 1. Obtener datos desde la API Python
+    async function cargarMotosDesdeServidor() {
+      try {
+        const res = await fetch('/api/motos');
+        motosData = await res.json();
+        actualizarContadoresCategorias();
+        poblarSelectsDeMotos();
+        renderizarMotos();
+        calcularFinanciamiento();
+      } catch (err) {
+        console.error('Error cargando motos:', err);
+      }
+    }
+
+    // Actualizar contadores en botones de filtro
+    function actualizarContadoresCategorias() {
+      document.getElementById('cont-todos').textContent = motosData.length;
+      const categorias = ['deportiva', 'naked', 'aventura', 'cruiser', 'urbana'];
+      categorias.forEach(cat => {
+        const count = motosData.filter(m => m.categoria === cat).length;
+        const el = document.getElementById(`cont-${cat}`);
+        if (el) el.textContent = count;
+      });
+    }
+
+    // Poblar selects en calculadora y formulario
+    function poblarSelectsDeMotos() {
+      const calcSelect = document.getElementById('calcMotoSelect');
+      const contactoSelect = document.getElementById('contactoMoto');
+
+      calcSelect.innerHTML = '';
+      contactoSelect.innerHTML = '';
+
+      motosData.forEach(moto => {
+        const opt1 = document.createElement('option');
+        opt1.value = moto.id;
+        opt1.textContent = `${moto.marca} ${moto.modelo} (${moto.precio_formato})`;
+        calcSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = `${moto.marca} ${moto.modelo}`;
+        opt2.textContent = `${moto.marca} ${moto.modelo}`;
+        contactoSelect.appendChild(opt2);
+      });
+    }
+
+    // 2. Renderizar tarjetas de motocicletas
+    function renderizarMotos() {
+      const contenedor = document.getElementById('gridMotos');
+      const sinResultados = document.getElementById('sinResultados');
+      const textoBuscar = document.getElementById('inputBuscar').value.toLowerCase().trim();
+      const criterioOrden = document.getElementById('selectOrden').value;
+
+      // Filtrar
+      let filtradas = motosData.filter(moto => {
+        const coincideCat = (categoriaActiva === 'todos' || moto.categoria === categoriaActiva);
+        const coincideTexto = (
+          moto.marca.toLowerCase().includes(textoBuscar) ||
+          moto.modelo.toLowerCase().includes(textoBuscar) ||
+          moto.cilindrada.toLowerCase().includes(textoBuscar) ||
+          moto.categoria_nombre.toLowerCase().includes(textoBuscar)
+        );
+        return coincideCat && coincideTexto;
+      });
+
+      // Ordenar
+      if (criterioOrden === 'precio-asc') {
+        filtradas.sort((a, b) => a.precio - b.precio);
+      } else if (criterioOrden === 'precio-desc') {
+        filtradas.sort((a, b) => b.precio - a.precio);
+      } else if (criterioOrden === 'potencia-desc') {
+        filtradas.sort((a, b) => parseInt(b.potencia) - parseInt(a.potencia));
+      } else if (criterioOrden === 'rating-desc') {
+        filtradas.sort((a, b) => calcularPromedioRating(b) - calcularPromedioRating(a));
+      }
+
+      contenedor.innerHTML = '';
+
+      if (filtradas.length === 0) {
+        sinResultados.classList.remove('hidden');
+        return;
+      } else {
+        sinResultados.classList.add('hidden');
+      }
+
+      filtradas.forEach(moto => {
+        const esFav = favoritos.includes(moto.id);
+        const ratingAvg = calcularPromedioRating(moto);
+        const numResenas = moto.reseñas ? moto.reseñas.length : 0;
+
+        const card = document.createElement('article');
+        card.className = 'card-hover bg-brand-card rounded-3xl border border-gray-800 overflow-hidden flex flex-col relative group';
+        
+        card.innerHTML = `
+          <!-- Imagen y Badges -->
+          <div class="relative h-56 overflow-hidden bg-black cursor-pointer" onclick="abrirModalDetalle('${moto.id}')">
+            <img src="${moto.imagen}" alt="${moto.modelo}" class="w-full h-full object-cover transform group-hover:scale-108 transition duration-500">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent"></div>
+            
+            <!-- Badge Categoría -->
+            <div class="absolute top-3 left-3 bg-black/70 backdrop-blur px-3 py-1 rounded-full border border-white/10 text-[10px] font-bold uppercase tracking-wider text-brand-orange">
+              ${moto.categoria_nombre}
+            </div>
+
+            <!-- Botón Favorito -->
+            <button onclick="event.stopPropagation(); toggleFavorito('${moto.id}')" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white hover:text-red-500 flex items-center justify-center transition">
+              <i class="${esFav ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart"></i>
+            </button>
+
+            <!-- Aceleración Pill -->
+            <div class="absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] text-gray-300 font-semibold bg-gray-900/80 px-2.5 py-0.5 rounded-md backdrop-blur border border-gray-800">
+              <i class="fa-solid fa-bolt text-brand-orange"></i> ${moto.aceleracion}
+            </div>
+          </div>
+
+          <!-- Contenido de la Tarjeta -->
+          <div class="p-6 flex flex-col flex-grow justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">${moto.marca}</span>
+                <!-- Rating Stars -->
+                <div class="flex items-center gap-1 text-xs text-amber-400">
+                  <i class="fa-solid fa-star text-xs"></i>
+                  <span class="font-bold text-white">${ratingAvg.toFixed(1)}</span>
+                  <span class="text-gray-500 text-[11px]">(${numResenas})</span>
+                </div>
+              </div>
+
+              <h3 class="font-display font-black text-xl text-white mt-1 cursor-pointer hover:text-brand-orange transition" onclick="abrirModalDetalle('${moto.id}')">
+                ${moto.modelo}
+              </h3>
+
+              <p class="text-xs text-gray-400 line-clamp-2 mt-2 leading-relaxed">
+                ${moto.descripcion}
+              </p>
+            </div>
+
+            <!-- Pills de Especificaciones -->
+            <div class="grid grid-cols-3 gap-2 py-3 border-y border-gray-800/80 text-center">
+              <div class="bg-gray-900/60 p-2 rounded-xl">
+                <span class="block text-[10px] text-gray-500 font-bold uppercase">Motor</span>
+                <span class="text-xs font-extrabold text-white">${moto.cilindrada}</span>
+              </div>
+              <div class="bg-gray-900/60 p-2 rounded-xl">
+                <span class="block text-[10px] text-gray-500 font-bold uppercase">Potencia</span>
+                <span class="text-xs font-extrabold text-brand-orange">${moto.potencia.split('@')[0]}</span>
+              </div>
+              <div class="bg-gray-900/60 p-2 rounded-xl">
+                <span class="block text-[10px] text-gray-500 font-bold uppercase">Top Speed</span>
+                <span class="text-xs font-extrabold text-white">${moto.velocidad_max}</span>
+              </div>
+            </div>
+
+            <!-- Precios y Acciones -->
+            <div class="flex items-end justify-between pt-1">
+              <div>
+                <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Precio Final</span>
+                <span class="font-display font-black text-xl text-white">${moto.precio_formato}</span>
+                <span class="block text-[10px] text-brand-orange font-semibold">o desde $${moto.cuota_mensual}/mes</span>
+              </div>
+
+              <button onclick="abrirModalDetalle('${moto.id}')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-orange to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-orange-600/20 transition transform active:scale-95">
+                Ver Detalles <i class="fa-solid fa-arrow-right ml-1"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
+        contenedor.appendChild(card);
+      });
+    }
+
+    // Helper: Promedio de calificación
+    function calcularPromedioRating(moto) {
+      if (!moto.reseñas || moto.reseñas.length === 0) return 5.0;
+      const sum = moto.reseñas.reduce((acc, r) => acc + r.calificacion, 0);
+      return sum / moto.reseñas.length;
+    }
+
+    // Filtrar por categoría
+    function filtrarCategoria(cat) {
+      categoriaActiva = cat;
+      document.querySelectorAll('.btn-filtro').forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.classList.add('bg-brand-orange', 'text-white', 'shadow-md', 'shadow-orange-600/30');
+          btn.classList.remove('bg-gray-800/80', 'text-gray-300');
+        } else {
+          btn.classList.remove('bg-brand-orange', 'text-white', 'shadow-md', 'shadow-orange-600/30');
+          btn.classList.add('bg-gray-800/80', 'text-gray-300');
+        }
+      });
+      renderizarMotos();
+    }
+
+    function limpiarFiltros() {
+      document.getElementById('inputBuscar').value = '';
+      filtrarCategoria('todos');
+    }
+
+    // 3. Modal de Detalles de Moto
+    function abrirModalDetalle(id) {
+      const moto = motosData.find(m => m.id === id);
+      if (!moto) return;
+      motoSeleccionada = moto;
+
+      document.getElementById('modalImg').src = moto.imagen;
+      document.getElementById('modalCategoriaBadge').textContent = moto.categoria_nombre;
+      document.getElementById('modalMarca').textContent = moto.marca;
+      document.getElementById('modalModelo').textContent = moto.modelo;
+      document.getElementById('modalPrecio').textContent = moto.precio_formato;
+      document.getElementById('modalCuota').textContent = `Desde $${moto.cuota_mensual}/mes`;
+      document.getElementById('modalDescripcion').textContent = moto.descripcion;
+
+      // Rating Estrellas
+      const avg = calcularPromedioRating(moto);
+      const numRes = moto.reseñas ? moto.reseñas.length : 0;
+      let starsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        starsHtml += `<i class="fa-solid fa-star text-sm ${i <= Math.round(avg) ? 'text-amber-400' : 'text-gray-600'}"></i>`;
+      }
+      starsHtml += `<span class="font-bold text-white text-sm ml-1">${avg.toFixed(1)} / 5</span> <span class="text-xs text-gray-400">(${numRes} reseñas verificadas)</span>`;
+      document.getElementById('modalRatingEstrellas').innerHTML = starsHtml;
+
+      // Colores
+      const contenedorColores = document.getElementById('modalColoresContenedor');
+      contenedorColores.innerHTML = '';
+      moto.colores.forEach((color, idx) => {
+        const nombreColor = moto.colores_nombres[idx] || `Opción ${idx+1}`;
+        const pill = document.createElement('div');
+        pill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-300';
+        pill.innerHTML = `<span class="w-3.5 h-3.5 rounded-full border border-white/20" style="background-color: ${color}"></span> <span>${nombreColor}</span>`;
+        contenedorColores.appendChild(pill);
+      });
+
+      // Especificaciones Grid
+      const specsGrid = document.getElementById('modalSpecsGrid');
+      specsGrid.innerHTML = `
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Cilindrada</span><span class="font-bold text-white text-sm">${moto.cilindrada}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Potencia</span><span class="font-bold text-brand-orange text-sm">${moto.potencia}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Torque</span><span class="font-bold text-white text-sm">${moto.torque}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Velocidad Máx</span><span class="font-bold text-white text-sm">${moto.velocidad_max}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Aceleración</span><span class="font-bold text-white text-sm">${moto.aceleracion}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Peso</span><span class="font-bold text-white text-sm">${moto.peso}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Capacidad Tanque</span><span class="font-bold text-white text-sm">${moto.tanque}</span></div>
+        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800"><span class="text-gray-500 block">Transmisión</span><span class="font-bold text-white text-sm">${moto.transmision}</span></div>
+      `;
+
+      // Destacados
+      const destacadosLista = document.getElementById('modalDestacadosLista');
+      destacadosLista.innerHTML = '';
+      moto.destacados.forEach(d => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `<i class="fa-solid fa-check text-brand-orange mt-0.5"></i> <span>${d}</span>`;
+        destacadosLista.appendChild(li);
+      });
+
+      // Renderizar Reseñas
+      renderizarResenasEnModal(moto);
+
+      // Estado de Favorito
+      actualizarBotonFavModal(moto.id);
+
+      // Reset Formulario Reseña
+      document.getElementById('formNuevaResena').classList.add('hidden');
+
+      document.getElementById('modalDetalle').classList.remove('hidden');
+    }
+
+    function cerrarModalDetalle() {
+      document.getElementById('modalDetalle').classList.add('hidden');
+    }
+
+    // Renderizar Lista de Reseñas
+    function renderizarResenasEnModal(moto) {
+      const lista = document.getElementById('modalListaResenas');
+      lista.innerHTML = '';
+
+      if (!moto.reseñas || moto.reseñas.length === 0) {
+        lista.innerHTML = `<p class="text-xs text-gray-500 italic py-3">Sé el primero en dejar una reseña para esta motocicleta.</p>`;
+        return;
+      }
+
+      moto.reseñas.forEach(r => {
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+          stars += `<i class="fa-solid fa-star text-[10px] ${i <= r.calificacion ? 'text-amber-400' : 'text-gray-600'}"></i>`;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-1.5';
+        div.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white text-xs">${r.autor}</span>
+              <span class="text-[10px] text-green-500 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                <i class="fa-solid fa-circle-check text-[9px]"></i> Piloto Verificado
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span>${stars}</span>
+              <span class="text-[10px] text-gray-500">${r.fecha || 'Reciente'}</span>
+            </div>
+          </div>
+          <h5 class="text-xs font-bold text-gray-200">${r.titulo}</h5>
+          <p class="text-xs text-gray-400 leading-relaxed">${r.comentario}</p>
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    function toggleFormularioResena() {
+      const f = document.getElementById('formNuevaResena');
+      f.classList.toggle('hidden');
+      if (!f.classList.contains('hidden')) {
+        document.getElementById('resenaAutor').focus();
+      }
+    }
+
+    // 4. Guardar Nueva Reseña vía POST API
+    async function guardarNuevaResena(e) {
+      e.preventDefault();
+      if (!motoSeleccionada) return;
+
+      const autor = document.getElementById('resenaAutor').value.trim();
+      const calificacion = parseInt(document.getElementById('resenaRating').value);
+      const titulo = document.getElementById('resenaTitulo').value.trim();
+      const comentario = document.getElementById('resenaComentario').value.trim();
+
+      const nuevaResena = {
+        moto_id: motoSeleccionada.id,
+        autor,
+        calificacion,
+        titulo,
+        comentario
+      };
+
+      try {
+        const res = await fetch('/api/resenas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nuevaResena)
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          // Agregar a la moto en memoria
+          if (!motoSeleccionada.reseñas) motoSeleccionada.reseñas = [];
+          motoSeleccionada.reseñas.unshift(data.reseña);
+          
+          // Actualizar UI del modal
+          renderizarResenasEnModal(motoSeleccionada);
+          
+          // Actualizar rating global del modal
+          const avg = calcularPromedioRating(motoSeleccionada);
+          let starsHtml = '';
+          for (let i = 1; i <= 5; i++) {
+            starsHtml += `<i class="fa-solid fa-star text-sm ${i <= Math.round(avg) ? 'text-amber-400' : 'text-gray-600'}"></i>`;
+          }
+          starsHtml += `<span class="font-bold text-white text-sm ml-1">${avg.toFixed(1)} / 5</span> <span class="text-xs text-gray-400">(${motoSeleccionada.reseñas.length} reseñas)</span>`;
+          document.getElementById('modalRatingEstrellas').innerHTML = starsHtml;
+
+          // Re-renderizar catálogo principal para actualizar promedios de tarjetas
+          renderizarMotos();
+
+          // Reset y cerrar form
+          document.getElementById('formNuevaResena').reset();
+          toggleFormularioResena();
+          mostrarToast('¡Reseña Publicada!', 'Tu valoración ha sido agregada exitosamente.');
+        }
+      } catch (err) {
+        console.error('Error al guardar reseña:', err);
+        mostrarToast('Error', 'No se pudo guardar la reseña en este momento.');
+      }
+    }
+
+    // 5. Sintetizador de Sonido de Motor con Web Audio API
+    let audioCtx = null;
+    function reproducirSonidoMotor() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(450, audioCtx.currentTime);
+
+        // Curva de revoluciones (RPM): ralentí -> acelerón -> desaceleración
+        const now = audioCtx.currentTime;
+        osc.frequency.setValueAtTime(65, now); // Ralentí profundo
+        osc.frequency.exponentialRampToValueAtTime(380, now + 0.6); // Rev up!
+        osc.frequency.exponentialRampToValueAtTime(440, now + 1.1); // A tope de RPM
+        osc.frequency.exponentialRampToValueAtTime(110, now + 1.8); // Desaceleración
+        osc.frequency.exponentialRampToValueAtTime(65, now + 2.3);
+
+        // Curva de volumen
+        gainNode.gain.setValueAtTime(0.01, now);
+        gainNode.gain.linearRampToValueAtTime(0.4, now + 0.2);
+        gainNode.gain.linearRampToValueAtTime(0.45, now + 1.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 2.4);
+
+        const btn = document.getElementById('btnRugido');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-volume-high animate-bounce"></i> ¡Acelerando!`;
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }, 2400);
+
+      } catch (e) {
+        console.warn('Audio API no soportado o bloqueado por el navegador', e);
+      }
+    }
+
+    // 6. Calculadora de Financiamiento
+    function setPlazo(meses) {
+      plazoFinanciamiento = meses;
+      document.querySelectorAll('.btn-plazo').forEach(b => {
+        if (parseInt(b.getAttribute('data-meses')) === meses) {
+          b.className = 'btn-plazo px-2 py-2 rounded-lg bg-brand-orange text-xs font-bold text-white shadow';
+        } else {
+          b.className = 'btn-plazo px-2 py-2 rounded-lg bg-gray-800 text-xs font-bold text-gray-300 hover:bg-gray-700';
+        }
+      });
+      calcularFinanciamiento();
+    }
+
+    function calcularFinanciamiento() {
+      const select = document.getElementById('calcMotoSelect');
+      const motoId = select.value;
+      const moto = motosData.find(m => m.id === motoId);
+      if (!moto) return;
+
+      const precio = moto.precio;
+      const pctEnganche = parseInt(document.getElementById('calcSliderEnganche').value);
+      document.getElementById('calcPorcentajeEnganche').textContent = pctEnganche;
+
+      const engancheMonto = precio * (pctEnganche / 100);
+      document.getElementById('calcEngancheValor').textContent = `$${Math.round(engancheMonto).toLocaleString()} USD`;
+
+      const saldoFinanciar = precio - engancheMonto;
+      const tasaAnual = 0.099; // 9.9% anual
+      const tasaMensual = tasaAnual / 12;
+
+      // Fórmula de cuota fija: C = P * [ i * (1+i)^n ] / [ (1+i)^n - 1 ]
+      const n = plazoFinanciamiento;
+      const cuota = saldoFinanciar * (tasaMensual * Math.pow(1 + tasaMensual, n)) / (Math.pow(1 + tasaMensual, n) - 1);
+
+      document.getElementById('calcCuotaMensual').textContent = `$${Math.round(cuota).toLocaleString()} USD / mes`;
+    }
+
+    function solicitarCreditoConMoto() {
+      const select = document.getElementById('calcMotoSelect');
+      const moto = motosData.find(m => m.id === select.value);
+      if (moto) {
+        document.getElementById('contactoMoto').value = `${moto.marca} ${moto.modelo}`;
+        document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' });
+        mostrarToast('Datos sincronizados', `Calculamos tu solicitud para ${moto.marca} ${moto.modelo}. Completa tus datos abajo.`);
+      }
+    }
+
+    function cotizarEstaMoto() {
+      if (!motoSeleccionada) return;
+      cerrarModalDetalle();
+      document.getElementById('contactoMoto').value = `${motoSeleccionada.marca} ${motoSeleccionada.modelo}`;
+      document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 7. Enviar Solicitud / Cotización al servidor Python
+    async function enviarCotizacion(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('btnEnviarContacto');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Procesando...`;
+
+      const solicitud = {
+        nombre: document.getElementById('contactoNombre').value.trim(),
+        email: document.getElementById('contactoEmail').value.trim(),
+        telefono: document.getElementById('contactoTelefono').value.trim(),
+        moto: document.getElementById('contactoMoto').value,
+        tipo: document.querySelector('input[name="tipoSolicitud"]:checked').value,
+        mensaje: document.getElementById('contactoMensaje').value.trim(),
+        fecha: new Date().toISOString()
+      };
+
+      try {
+        const res = await fetch('/api/cotizacion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(solicitud)
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          mostrarToast('¡Solicitud Recibida!', 'Nos pondremos en contacto contigo vía WhatsApp o correo en breve.');
+          document.getElementById('formContacto').reset();
+        }
+      } catch (err) {
+        mostrarToast('Error al Enviar', 'Ocurrió un inconveniente al conectar con el servidor.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Confirmar Solicitud`;
+      }
+    }
+
+    function abrirModalCotizacionGeneral() {
+      document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 8. Manejo de Favoritos
+    function toggleFavorito(motoId) {
+      if (favoritos.includes(motoId)) {
+        favoritos = favoritos.filter(id => id !== motoId);
+        mostrarToast('Eliminado de favoritos', 'La moto se quitó de tu lista guardada.');
+      } else {
+        favoritos.push(motoId);
+        mostrarToast('¡Guardado en favoritos!', 'Puedes consultar tus motos preferidas en el corazón superior.');
+      }
+      localStorage.setItem('motos_favoritos', JSON.stringify(favoritos));
+      actualizarBadgeFavoritos();
+      renderizarMotos();
+    }
+
+    function toggleFavoritoModal() {
+      if (!motoSeleccionada) return;
+      toggleFavorito(motoSeleccionada.id);
+      actualizarBotonFavModal(motoSeleccionada.id);
+    }
+
+    function actualizarBotonFavModal(motoId) {
+      const btn = document.getElementById('btnFavModal');
+      const esFav = favoritos.includes(motoId);
+      btn.innerHTML = `<i class="${esFav ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart"></i>`;
+    }
+
+    function actualizarBadgeFavoritos() {
+      document.getElementById('badgeFavoritos').textContent = favoritos.length;
+    }
+
+    function abrirModalFavoritos() {
+      const lista = document.getElementById('listaFavoritosContenedor');
+      lista.innerHTML = '';
+
+      if (favoritos.length === 0) {
+        lista.innerHTML = `<p class="text-xs text-gray-500 italic py-6 text-center">Aún no has guardado motos en favoritos. Haz clic en el corazón de cualquier moto.</p>`;
+      } else {
+        favoritos.forEach(id => {
+          const moto = motosData.find(m => m.id === id);
+          if (!moto) return;
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between p-3 rounded-xl bg-gray-950 border border-gray-800';
+          item.innerHTML = `
+            <div class="flex items-center gap-3">
+              <img src="${moto.imagen}" class="w-12 h-12 rounded-lg object-cover">
+              <div>
+                <h5 class="text-xs font-bold text-white">${moto.marca} ${moto.modelo}</h5>
+                <span class="text-[11px] text-brand-orange font-bold">${moto.precio_formato}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="cerrarModalFavoritos(); abrirModalDetalle('${moto.id}')" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-[11px] font-semibold text-white">Ver</button>
+              <button onclick="toggleFavorito('${moto.id}'); abrirModalFavoritos()" class="text-gray-500 hover:text-red-500 px-2"><i class="fa-solid fa-trash text-xs"></i></button>
+            </div>
+          `;
+          lista.appendChild(item);
+        });
+      }
+
+      document.getElementById('modalFavoritos').classList.remove('hidden');
+    }
+
+    function cerrarModalFavoritos() {
+      document.getElementById('modalFavoritos').classList.add('hidden');
+    }
+
+    // 9. Toast Notificaciones
+    function mostrarToast(titulo, mensaje) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastTitulo').textContent = titulo;
+      document.getElementById('toastMensaje').textContent = mensaje;
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
+"""
+
+
+class MotoServerHandler(http.server.BaseHTTPRequestHandler):
+    """Manejador HTTP para servir la web y los endpoints de API."""
+
+    def log_message(self, format, *args):
+        # Log limpio en consola con timestamp
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {self.command} {self.path}")
+
+    def _set_headers(self, status=200, content_type="text/html; charset=utf-8"):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_OPTIONS(self):
+        self._set_headers(200)
+
+    def do_GET(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        # 1. Servir Página Principal
+        if path in ("/", "/index.html"):
+            self._set_headers(200, "text/html; charset=utf-8")
+            self.wfile.write(HTML_CONTENT.encode("utf-8"))
+
+        # 2. API: Lista de Motos y Reseñas
+        elif path == "/api/motos":
+            motos = load_motos()
+            self._set_headers(200, "application/json; charset=utf-8")
+            self.wfile.write(json.dumps(motos, ensure_ascii=False).encode("utf-8"))
+
+        # 3. API: Historial de Cotizaciones
+        elif path == "/api/cotizaciones":
+            quotes = []
+            if os.path.exists(QUOTES_FILE):
+                with open(QUOTES_FILE, "r", encoding="utf-8") as f:
+                    quotes = json.load(f)
+            self._set_headers(200, "application/json; charset=utf-8")
+            self.wfile.write(json.dumps(quotes, ensure_ascii=False).encode("utf-8"))
+
+        else:
+            self._set_headers(404, "text/plain; charset=utf-8")
+            self.wfile.write(b"404 Not Found")
+
+    def do_POST(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = urllib.parse.unquote(parsed_url.path)
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length)
+
+        try:
+            body = json.loads(post_data.decode("utf-8")) if post_data else {}
+        except Exception:
+            body = {}
+
+        # 1. API: Registrar Nueva Reseña
+        if path in ("/api/reseñas", "/api/resenas"):
+            moto_id = body.get("moto_id")
+            autor = body.get("autor", "Piloto Anónimo")
+            calificacion = int(body.get("calificacion", 5))
+            titulo = body.get("titulo", "")
+            comentario = body.get("comentario", "")
+
+            motos = load_motos()
+            moto_encontrada = None
+            for m in motos:
+                if m["id"] == moto_id:
+                    moto_encontrada = m
+                    break
+
+            if moto_encontrada:
+                nueva_resena = {
+                    "id": f"res-{int(datetime.now().timestamp())}",
+                    "autor": autor,
+                    "calificacion": calificacion,
+                    "fecha": datetime.now().strftime("%Y-%m-%d"),
+                    "titulo": titulo,
+                    "comentario": comentario
+                }
+                if "reseñas" not in moto_encontrada:
+                    moto_encontrada["reseñas"] = []
+                moto_encontrada["reseñas"].insert(0, nueva_resena)
+                save_motos(motos)
+
+                self._set_headers(200, "application/json; charset=utf-8")
+                resp = {"status": "success", "reseña": nueva_resena}
+                self.wfile.write(json.dumps(resp, ensure_ascii=False).encode("utf-8"))
+            else:
+                self._set_headers(404, "application/json; charset=utf-8")
+                self.wfile.write(json.dumps({"status": "error", "message": "Moto no encontrada"}).encode("utf-8"))
+
+        # 2. API: Registrar Cotización / Test Drive
+        elif path == "/api/cotizacion":
+            save_quote(body)
+            self._set_headers(200, "application/json; charset=utf-8")
+            resp = {"status": "success", "message": "Cotización guardada exitosamente"}
+            self.wfile.write(json.dumps(resp, ensure_ascii=False).encode("utf-8"))
+
+        else:
+            self._set_headers(404, "text/plain; charset=utf-8")
+            self.wfile.write(b"404 Endpoint Not Found")
+
+
+def abrir_navegador(url):
+    """Abre el navegador tras un breve retraso para asegurar que el servidor esté activo."""
+    import time
+    time.sleep(1.2)
+    print(f"Abriendo navegador en: {url}")
+    webbrowser.open(url)
+
+
+def run_server():
+    server_address = ("", PORT)
+    httpd = http.server.ThreadingHTTPServer(server_address, MotoServerHandler)
+    url = f"http://localhost:{PORT}"
+
+    print("=" * 65)
+    print("   [+] MUNDOMOTOS - SITIO WEB & CATALOGO OFICIAL")
+    print("=" * 65)
+    print(f" Servidor iniciado con exito en: {url}")
+    print(" Caracteristicas incluidas:")
+    print("   * Catalogo interactivo de motocicletas con fotos y especificaciones")
+    print("   * Precios transparentes y cuotas mensuales estimadas")
+    print("   * Descripciones detalladas y equipamiento")
+    print("   * Sistema dinamico de reseñas y valoraciones con estrellas")
+    print("   * Simulador acustico de revoluciones de motor (Web Audio API)")
+    print("   * Calculadora de financiamiento interactiva (Enganche & Plazos)")
+    print("   * Formulario de prueba de manejo (Test Drive) con almacenamiento")
+    print("   * Filtros por categoria, busqueda en tiempo real y favoritos")
+    print("-" * 65)
+    print(" Presiona [ Ctrl + C ] en esta consola para detener el servidor.")
+    print("=" * 65)
+
+    # Abrir navegador automáticamente en segundo plano
+    threading.Thread(target=abrir_navegador, args=(url,), daemon=True).start()
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nDeteniendo servidor MundoMotos...")
+        httpd.server_close()
+        print("Servidor detenido correctamente. ¡Hasta la próxima ruta!")
+
+
+if __name__ == "__main__":
+    run_server()

@@ -1,0 +1,428 @@
+[
+  {
+    "id": "yamaha-r1m",
+    "marca": "Yamaha",
+    "modelo": "YZF-R1M",
+    "categoria": "deportiva",
+    "categoria_nombre": "Superbike / Deportiva",
+    "precio": 26999,
+    "precio_formato": "$26,999 USD",
+    "cuota_mensual": 415,
+    "imagen": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "998 cc",
+    "potencia": "200 HP @ 13,500 rpm",
+    "torque": "113.3 Nm @ 11,500 rpm",
+    "peso": "202 kg",
+    "velocidad_max": "299 km/h",
+    "aceleracion": "0-100 km/h en 2.9s",
+    "tanque": "17 Litros",
+    "transmision": "6 velocidades con Quickshifter bidireccional",
+    "sonido_tipo": "crossplane4",
+    "descripcion": "La cúspide tecnológica de Yamaha nacida directamente en los circuitos de MotoGP. La YZF-R1M equipa suspensión de competición electrónica Öhlins (ERS), carenado exclusivo en fibra de carbono auténtica y una Unidad de Medición Inercial (IMU) de 6 ejes que procesa datos 125 veces por segundo para ofrecer un control de tracción y frenada milimétricos.",
+    "colores": [
+      "#1e3a8a",
+      "#0f172a",
+      "#94a3b8"
+    ],
+    "colores_nombres": [
+      "Azul Yamaha Racing",
+      "Fibra de Carbono Mate",
+      "Plata Tech"
+    ],
+    "destacados": [
+      "Suspensión electrónica Öhlins NPX con cartucho presurizado",
+      "Carenado completo en fibra de carbono de grado aeronáutico",
+      "Unidad de control de comunicaciones (CCU) con telemetría GPS",
+      "Frenos con pinzas monobloque radiales de 4 pistones y ABS en curva"
+    ],
+    "reseñas": [
+      {
+        "id": "res-1790765090",
+        "autor": "Juan Tester",
+        "calificacion": 5,
+        "fecha": "2026-09-30",
+        "titulo": "Increible potencia",
+        "comentario": "La probe en pista y es sublime."
+      },
+      {
+        "id": "r1-1",
+        "autor": "Carlos Mendoza",
+        "calificacion": 5,
+        "fecha": "2026-02-14",
+        "titulo": "Una auténtica bestia de circuito",
+        "comentario": "El tacto de la electrónica y la aceleración del motor Crossplane es incomparable. En pista se siente sólida como una roca y la suspensión Öhlins se adapta mágicamente a cada curva."
+      },
+      {
+        "id": "r1-2",
+        "autor": "Martín Silva",
+        "calificacion": 5,
+        "fecha": "2026-03-01",
+        "titulo": "Vale cada centavo",
+        "comentario": "El acabado en fibra de carbono es una obra de arte. El sonido del motor tetracilíndrico con cigüeñal crossplane es único y adictivo."
+      }
+    ]
+  },
+  {
+    "id": "ducati-panigale-v4s",
+    "marca": "Ducati",
+    "modelo": "Panigale V4 S",
+    "categoria": "deportiva",
+    "categoria_nombre": "Superbike / Deportiva",
+    "precio": 31500,
+    "precio_formato": "$31,500 USD",
+    "cuota_mensual": 485,
+    "imagen": "https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "1103 cc",
+    "potencia": "215.5 HP @ 13,000 rpm",
+    "torque": "123.6 Nm @ 9,500 rpm",
+    "peso": "195.5 kg",
+    "velocidad_max": "305 km/h",
+    "aceleracion": "0-100 km/h en 2.8s",
+    "tanque": "17 Litros",
+    "transmision": "6 velocidades con Ducati Quick Shift (DQS) EVO 2",
+    "sonido_tipo": "v4",
+    "descripcion": "El pináculo del diseño y la velocidad italiana. Diseñada codo a codo con el departamento Ducati Corse de WorldSBK, la Panigale V4 S monta el glorioso motor Desmosedici Stradale V4 a 90° con cigüeñal contrarrotante y alerones aerodinámicos biplano integrados que generan 30 kg de carga a 270 km/h.",
+    "colores": [
+      "#b91c1c",
+      "#18181b"
+    ],
+    "colores_nombres": [
+      "Rojo Ducati Corsa",
+      "Negro Eclipse Black"
+    ],
+    "destacados": [
+      "Motor Desmosedici Stradale V4 de 215.5 CV con distribución desmodrómica",
+      "Llantas forjadas de aluminio Marchesini superligeras",
+      "Alerones aerodinámicos derivados de MotoGP para máxima estabilidad",
+      "Pantalla TFT a color de 5\" con interfaz Track EVO inspirada en Pecco Bagnaia"
+    ],
+    "reseñas": [
+      {
+        "id": "r2-1",
+        "autor": "Alejandro Rossi",
+        "calificacion": 5,
+        "fecha": "2026-01-20",
+        "titulo": "Perfección italiana absoluta",
+        "comentario": "La potencia es demoledora pero los modos de tracción te permiten exprimirla con total confianza. El diseño te roba el aliento cada vez que abres el garaje."
+      },
+      {
+        "id": "r2-2",
+        "autor": "Daniel Herrera",
+        "calificacion": 4,
+        "fecha": "2026-02-18",
+        "titulo": "Increíble en pista, exige respeto en ciudad",
+        "comentario": "En carretera y pista es la reina indiscutida. En tráfico de ciudad genera algo de calor, pero al salir a carretera despejada se olvida todo al instante."
+      }
+    ]
+  },
+  {
+    "id": "bmw-r1250-gs-adventure",
+    "marca": "BMW Motorrad",
+    "modelo": "R 1250 GS Adventure",
+    "categoria": "aventura",
+    "categoria_nombre": "Aventura / Maxitrail",
+    "precio": 24890,
+    "precio_formato": "$24,890 USD",
+    "cuota_mensual": 380,
+    "imagen": "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "1254 cc",
+    "potencia": "136 HP @ 7,750 rpm",
+    "torque": "143 Nm @ 6,250 rpm",
+    "peso": "268 kg",
+    "velocidad_max": "220 km/h",
+    "aceleracion": "0-100 km/h en 3.6s",
+    "tanque": "30 Litros (Autonomía +550 km)",
+    "transmision": "Cardán con embrague bañado en aceite antirrebote",
+    "sonido_tipo": "boxer",
+    "descripcion": "La reina indiscutida de los viajes transcontinentales y el fin del mundo. Equipada con el legendario motor Boxer con distribución variable BMW ShiftCam, suspensiones electrónicas Dynamic ESA con nivelación automática y un colosal tanque de 30 litros que te permite devorar continentes sin detenerte.",
+    "colores": [
+      "#1e293b",
+      "#3b82f6",
+      "#f8fafc"
+    ],
+    "colores_nombres": [
+      "Triple Black Edición Especial",
+      "Rallye Azul Deportivo",
+      "Blanco Luminoso"
+    ],
+    "destacados": [
+      "Motor Boxer ShiftCam con par contundente desde muy bajas revoluciones",
+      "Chasis de puente espacial con suspensión Telelever delantera y Paralever trasera",
+      "Autonomía monumental superior a 550 kilómetros con tanque de 30 L",
+      "Modos de conducción Pro con control dinámico del freno motor (MSR)"
+    ],
+    "reseñas": [
+      {
+        "id": "r3-1",
+        "autor": "Fernando Galván",
+        "calificacion": 5,
+        "fecha": "2026-03-10",
+        "titulo": "Crucé los Andes sin un solo tropiezo",
+        "comentario": "Comodidad suprema en viajes de 10 horas diarias. La suspensión absorbe baches, rocas y carreteras rotas como si flotaras en una nube."
+      },
+      {
+        "id": "r3-2",
+        "autor": "Andrés Morales",
+        "calificacion": 5,
+        "fecha": "2026-03-22",
+        "titulo": "La mejor moto de aventura jamás construida",
+        "comentario": "El cardán te ahorra mantenimiento de cadena en viajes largos. Su centro de gravedad bajo hace que se sienta mucho más ágil de lo que sus 268 kg aparentan."
+      }
+    ]
+  },
+  {
+    "id": "kawasaki-z900-se",
+    "marca": "Kawasaki",
+    "modelo": "Z900 SE",
+    "categoria": "naked",
+    "categoria_nombre": "Naked / Streetfighter",
+    "precio": 11950,
+    "precio_formato": "$11,950 USD",
+    "cuota_mensual": 190,
+    "imagen": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "948 cc",
+    "potencia": "125 HP @ 9,500 rpm",
+    "torque": "98.6 Nm @ 7,700 rpm",
+    "peso": "213 kg",
+    "velocidad_max": "248 km/h",
+    "aceleracion": "0-100 km/h en 3.2s",
+    "tanque": "17 Litros",
+    "transmision": "6 marchas con embrague asistido y antirrebote",
+    "sonido_tipo": "inline4",
+    "descripcion": "Diseño salvaje inspirado en la filosofía 'Sugomi'. La versión Special Edition (SE) eleva la experiencia Naked con un amortiguador trasero Öhlins S46 de gama alta con ajuste remoto de precarga, frenos delanteros Brembo con pinzas radiales M4.32 y latiguillos metálicos trenzados.",
+    "colores": [
+      "#15803d",
+      "#0f172a"
+    ],
+    "colores_nombres": [
+      "Verde Kawasaki Metallic",
+      "Negro Spark Mate"
+    ],
+    "destacados": [
+      "Frenos Brembo M4.32 monobloque con discos lobulados de 300 mm",
+      "Amortiguador trasero Öhlins S46 con regulación hidráulica",
+      "Instrumentación digital TFT con conectividad Bluetooth Rideology App",
+      "Control de tracción KTRC con 3 modos y selección de potencia Full/Low"
+    ],
+    "reseñas": [
+      {
+        "id": "r4-1",
+        "autor": "Lucas Benítez",
+        "calificacion": 5,
+        "fecha": "2026-02-05",
+        "titulo": "Empuje brutal en rango medio",
+        "comentario": "La entrega de potencia es súper elástica. No tienes que bajar de marcha constantemente y el sonido de admisión al acelerar es glorioso."
+      },
+      {
+        "id": "r4-2",
+        "autor": "Javier Solís",
+        "calificacion": 4,
+        "fecha": "2026-03-15",
+        "titulo": "Calidad-precio imbatible",
+        "comentario": "Los componentes Öhlins y Brembo de la versión SE marcan una diferencia enorme comparada con la estándar. Muy ágil en curvas reviradas."
+      }
+    ]
+  },
+  {
+    "id": "harley-davidson-fat-boy-114",
+    "marca": "Harley-Davidson",
+    "modelo": "Fat Boy 114",
+    "categoria": "cruiser",
+    "categoria_nombre": "Cruiser / Custom",
+    "precio": 22499,
+    "precio_formato": "$22,499 USD",
+    "cuota_mensual": 345,
+    "imagen": "https://images.unsplash.com/photo-1558981420-87aa9dad1c89?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "1868 cc",
+    "potencia": "94 HP @ 4,750 rpm",
+    "torque": "161 Nm @ 3,000 rpm",
+    "peso": "317 kg",
+    "velocidad_max": "185 km/h",
+    "aceleracion": "0-100 km/h en 4.2s",
+    "tanque": "18.9 Litros",
+    "transmision": "Cruise Drive de 6 marchas con transmisión final por correa",
+    "sonido_tipo": "vtwin",
+    "descripcion": "El icono cinematográfico y la máxima expresión del muscle cruiser americano. La Fat Boy 114 impone respeto con sus colosales llantas lenticulares de aluminio fundido Lakester, un neumático trasero de 240 mm y el visceral motor Milwaukee-Eight 114 V-Twin repleto de par demoledor a bajo régimen.",
+    "colores": [
+      "#000000",
+      "#94a3b8",
+      "#78350f"
+    ],
+    "colores_nombres": [
+      "Vivid Black Cromo",
+      "Gris Barracuda Plata",
+      "Mineral Green Metálico"
+    ],
+    "destacados": [
+      "Colosal motor Milwaukee-Eight 114 V-Twin de 1,868 cc con sonido inconfundible",
+      "Llantas de disco sólido Lakester de aluminio fundido macizo",
+      "Chasis Softail moderno con monoamortiguador trasero oculto regulable",
+      "Acabados en cromo satinado brillante de resistencia extrema"
+    ],
+    "reseñas": [
+      {
+        "id": "r5-1",
+        "autor": "Roberto Navarro",
+        "calificacion": 5,
+        "fecha": "2026-01-30",
+        "titulo": "Pura presencia y personalidad en la carretera",
+        "comentario": "El torque es monstruoso. Apenas abres gas a 2000 rpm y sientes cómo te empuja hacia el horizonte. La gente se detiene a tomarle fotos en cada semáforo."
+      },
+      {
+        "id": "r5-2",
+        "autor": "Gonzalo Ramos",
+        "calificacion": 5,
+        "fecha": "2026-02-28",
+        "titulo": "Un sueño de toda la vida cumplido",
+        "comentario": "Muy cómoda para viajar a velocidad crucero. El sonido del motor es música pura y los acabados de pintura y cromo son impecables."
+      }
+    ]
+  },
+  {
+    "id": "ktm-890-adventure-r",
+    "marca": "KTM",
+    "modelo": "890 Adventure R",
+    "categoria": "aventura",
+    "categoria_nombre": "Aventura / Hard Enduro",
+    "precio": 15499,
+    "precio_formato": "$15,499 USD",
+    "cuota_mensual": 240,
+    "imagen": "https://images.unsplash.com/photo-1571327073757-71d13c24570f?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "889 cc",
+    "potencia": "105 HP @ 8,000 rpm",
+    "torque": "100 Nm @ 6,500 rpm",
+    "peso": "196 kg (en seco)",
+    "velocidad_max": "210 km/h",
+    "aceleracion": "0-100 km/h en 3.5s",
+    "tanque": "20 Litros (Depósito bajo envolvente)",
+    "transmision": "6 velocidades con embrague PASC antirrebote",
+    "sonido_tipo": "twin790",
+    "descripcion": "Inspirada en el legado ganador del Rally Dakar. Si tu aventura implica dunas del desierto, senderos de alta montaña y cruce de ríos, la 890 Adventure R cuenta con suspensiones WP XPLOR de 240 mm de recorrido completamente ajustables, un chasis multitubular de acero al cromo-molibdeno y depósito bajo centrado de masas.",
+    "colores": [
+      "#ea580c",
+      "#ffffff",
+      "#0284c7"
+    ],
+    "colores_nombres": [
+      "Naranja Dakar Oficial",
+      "Blanco Alpino Rally",
+      "Azul Factory"
+    ],
+    "destacados": [
+      "Suspensiones WP XPLOR de 48 mm con tecnología de cartucho abierto",
+      "Depósito de combustible en herradura que baja el centro de gravedad drásticamente",
+      "Modo de conducción Rally con ajuste de deslizamiento en 9 niveles en marcha",
+      "Neumáticos Mitas Enduro Trail de tacos de alta resistencia"
+    ],
+    "reseñas": [
+      {
+        "id": "r6-1",
+        "autor": "Emilio Valverde",
+        "calificacion": 5,
+        "fecha": "2026-03-05",
+        "titulo": "La verdadera reina del off-road",
+        "comentario": "Pasa por donde las maxi-trail pesadas no se atreven a entrar. El tanque bajo hace que parezca una moto de enduro de 450 cc al meterte en arena o barro."
+      }
+    ]
+  },
+  {
+    "id": "honda-cbr650r",
+    "marca": "Honda",
+    "modelo": "CBR650R E-Clutch",
+    "categoria": "deportiva",
+    "categoria_nombre": "Sport / Urbana Deportiva",
+    "precio": 9999,
+    "precio_formato": "$9,999 USD",
+    "cuota_mensual": 155,
+    "imagen": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "649 cc",
+    "potencia": "95 HP @ 12,000 rpm",
+    "torque": "63 Nm @ 9,500 rpm",
+    "peso": "208 kg",
+    "velocidad_max": "230 km/h",
+    "aceleracion": "0-100 km/h en 3.7s",
+    "tanque": "15.4 Litros",
+    "transmision": "6 velocidades con tecnología Honda E-Clutch",
+    "sonido_tipo": "inline4_smooth",
+    "descripcion": "La combinación ideal de deportividad, confiabilidad legendaria Honda y uso cotidiano. Equipa el revolucionario sistema Honda E-Clutch, que permite arrancar, detenerse y cambiar de marcha sin tener que accionar la maneta del embrague, conservando la pureza de un motor de 4 cilindros en línea que aúlla hasta las 12,000 rpm.",
+    "colores": [
+      "#dc2626",
+      "#1e293b"
+    ],
+    "colores_nombres": [
+      "Grand Prix Red",
+      "Matt Gunpowder Black"
+    ],
+    "destacados": [
+      "Innovador sistema Honda E-Clutch: cambios perfectos sin tocar la maneta",
+      "Horquilla invertida Showa SFF-BP de pistón grande de 41 mm",
+      "Control de par seleccionable Honda (HSTC) desconectable",
+      "Iluminación LED dual afilada inspirada en la CBR1000RR-R Fireblade"
+    ],
+    "reseñas": [
+      {
+        "id": "r7-1",
+        "autor": "Sofía Cárdenas",
+        "calificacion": 5,
+        "fecha": "2026-02-11",
+        "titulo": "El E-Clutch es magia para la ciudad y carretera",
+        "comentario": "El sistema de embrague electrónico es una maravilla en atascos de tráfico y en curvas rápidas sube marchas con una suavidad asombrosa. Mantenimiento muy accesible."
+      },
+      {
+        "id": "r7-2",
+        "autor": "Matías Orozco",
+        "calificacion": 5,
+        "fecha": "2026-03-12",
+        "titulo": "Finura de cuatro cilindros insuperable",
+        "comentario": "Cero vibraciones a velocidades de autopista. La posición de los semimanillares no es tan extrema como una R6, por lo que puedes viajar sin que te duela la espalda."
+      }
+    ]
+  },
+  {
+    "id": "vespa-gts-300-supersport",
+    "marca": "Vespa",
+    "modelo": "GTS 300 SuperSport",
+    "categoria": "urbana",
+    "categoria_nombre": "Scooter Premium / Urbana",
+    "precio": 8199,
+    "precio_formato": "$8,199 USD",
+    "cuota_mensual": 130,
+    "imagen": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=900&auto=format&fit=crop&q=80",
+    "cilindrada": "278 cc",
+    "potencia": "23.8 HP @ 8,250 rpm",
+    "torque": "26 Nm @ 5,250 rpm",
+    "peso": "160 kg",
+    "velocidad_max": "130 km/h",
+    "aceleracion": "0-100 km/h en 8.5s",
+    "tanque": "8.5 Litros",
+    "transmision": "Automática CVT con convertidor de par",
+    "sonido_tipo": "scooter_single",
+    "descripcion": "El glamour de la Dolce Vita con el motor más potente jamás montado en una Vespa. El propulsor 300 HPE (High Performance Engine) de inyección electrónica brinda arranques fulgurantes en ciudad. Carrocería monocasco 100% de acero, llave de proximidad Keyless y sistema de conectividad Vespa MIA con la app en tu teléfono.",
+    "colores": [
+      "#f97316",
+      "#0f172a",
+      "#f8fafc"
+    ],
+    "colores_nombres": [
+      "Naranja Sunset Arancio",
+      "Negro Convinto Mate",
+      "Blanco Innocenza"
+    ],
+    "destacados": [
+      "Motor 300 HPE monocilíndrico de 4 válvulas y refrigeración líquida",
+      "Carrocería autoportante clásica en chapa de acero estampada",
+      "Arranque sin llave (Keyless System) y localizador Bike Finder",
+      "Frenos con doble disco de 220 mm y sistema ABS + control de tracción ASR"
+    ],
+    "reseñas": [
+      {
+        "id": "r8-1",
+        "autor": "Valeria Fontana",
+        "calificacion": 5,
+        "fecha": "2026-03-18",
+        "titulo": "Estilo insuperable y agilidad urbana",
+        "comentario": "Es una gozada para desplazarse a diario. Se estaciona en cualquier lugar, consume poquísimo combustible y tiene un empuje sorprendente al salir de los semáforos."
+      }
+    ]
+  }
+]
